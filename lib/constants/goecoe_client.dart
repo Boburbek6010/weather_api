@@ -1,0 +1,98 @@
+import 'dart:convert';
+
+import 'package:weather_api/constants/response_error.dart';
+
+import 'address.dart';
+import 'coordinates.dart';
+import 'package:http/http.dart' as http;
+
+abstract class GeocodeClient {
+  /// Returns an [Address] given a [latitude], [longitude]
+  /// and an [apiKey].
+  Future<Address> reverseGeocoding(
+      double latitude, double longitude, String apiKey);
+
+  /// Returns [Coordinates] given an [address] and an [apiKey].
+  Future<Coordinates> forwardGeocoding(String address, String apiKey);
+}
+
+class GeocodeclientImpl implements GeocodeClient {
+  /// API endpoint url.
+  final String url = 'geocode.xyz';
+
+  @override
+  Future<Address> reverseGeocoding(
+      double latitude, double longitude, String apiKey) {
+    String urlParams =
+        "/$latitude,$longitude";
+
+    Map<String, String> queryParams = {
+      'geoit': 'json',
+    };
+
+    if (apiKey != '') {
+      queryParams.addAll({'auth': apiKey});
+    }
+
+    final Uri uri = Uri.https(url, urlParams, queryParams);
+
+    return http.get(uri, headers: {'User-Agent': 'geocode (dart:io)'}).then((response) {
+      ResponseError err = ResponseError.fromJson(json.decode(response.body));
+
+      if (err.code != null) {
+        // throw _handleErrorException(err);
+      }
+
+      return Address.fromJson(json.decode(response.body));
+    }).catchError((error) => throw error);
+  }
+
+  @override
+  Future<Coordinates> forwardGeocoding(String address, String apiKey) {
+    String urlParams = "/${address.replaceAll(' ', '+')}";
+
+    Map<String, String> queryParams = {
+      'geoit': 'json',
+    };
+
+    if (apiKey != '') {
+      queryParams.addAll({'auth': apiKey});
+    }
+
+    final Uri uri = Uri.https(url, urlParams, queryParams);
+
+    return http.get(uri, headers: {'User-Agent': 'geocode (dart:io)'}).then((response) {
+      ResponseError err = ResponseError.fromJson(json.decode(response.body));
+
+      if (err.code != null) {
+        // throw _handleErrorException(err);
+      }
+
+      return Coordinates.fromJson(json.decode(response.body));
+    }).catchError((error) => throw error);
+  }
+
+  /// Given a [ResponseError] it finds out what kind of [GeocodeException] return.
+  // GeocodeException _handleErrorException(ResponseError responseError) {
+  //   switch (responseError.code) {
+  //     case ResponseError.e002:
+  //       return AccountOutOfCreditsException(
+  //           responseError.message, responseError.code);
+  //     case ResponseError.e003:
+  //       return AuthTokenNotFoundException(
+  //           responseError.message, responseError.code);
+  //     case ResponseError.e005:
+  //       return PostalCodeFormatException(
+  //           responseError.message, responseError.code);
+  //     case ResponseError.e006:
+  //       return RequestThrottledException(
+  //           responseError.message, responseError.code);
+  //     case ResponseError.e007:
+  //       return InvalidQueryException(responseError.message, responseError.code);
+  //     case ResponseError.e008:
+  //       return EmptyResultException(responseError.message, responseError.code);
+  //     default:
+  //       return UnknownErrorException("Unknown error. Try again.", "-1");
+  //   }
+  // }
+}
